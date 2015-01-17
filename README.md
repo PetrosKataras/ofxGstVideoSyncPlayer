@@ -21,7 +21,7 @@ Follow the installation instructions that you find there in order to properly in
 
 ## Compiling the example
 
-The addon_config.mk file should pull necessary dependencies based on the platform that you are working..
+The [addon_config.mk](https://github.com/PetrosKataras/ofxGstVideoSyncPlayer/blob/master/addon_config.mk) file should pull necessary dependencies based on the platform that you are working..
 
 If you prefer the manual way here is how to:
 
@@ -49,4 +49,4 @@ For sample usage check the included example.
 
 The code found in this repository is distributed under the [MIT Licence](http://opensource.org/licenses/MIT).
 
-Copyright (c) <2015> <Petros Kataras>
+Copyright (c) 2015 Petros Kataras
