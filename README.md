@@ -47,6 +47,6 @@ For sample usage check the included example.
 
 ## Licence
 
-The code found in this repository is distributed under the [MIT Licence](http://opensource.org/licenses/MIT).
+The code in this repository is distributed under the [MIT Licence](http://opensource.org/licenses/MIT).
 
 Copyright (c) 2015 Petros Kataras
