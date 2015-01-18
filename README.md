@@ -1,4 +1,4 @@
-# ofxGstNetVideoPlayer
+# ofxGstVideoSyncPlayer
 
 An openFrameworks addon for playing back videos in sync over the network with GStreamer.
 
