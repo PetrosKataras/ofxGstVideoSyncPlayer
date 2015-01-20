@@ -180,7 +180,7 @@ void ofxGstVideoSyncPlayer::update()
             //gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
             //gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
-            //GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH || GST_SEEK_FLAG_ACCURATE);
+            //GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
             //if (!gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos)) {
             //        ofLogWarning() << "Pausing seek failed" << std::endl;
@@ -221,7 +221,7 @@ void ofxGstVideoSyncPlayer::update()
             ///> If we dont do this there is a delay before the pipeline starts again i.e when hitting play() again after pause()..
             ///> I m pretty sure this can be done just by adjusting the base_time based on the position but 
             ///> havent figured it out exactly yet..
-            GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH || GST_SEEK_FLAG_ACCURATE);
+            GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
             if (!gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos)) {
                     ofLogWarning () << "Pausing seek failed" << std::endl;
@@ -362,7 +362,7 @@ void ofxGstVideoSyncPlayer::pause()
         
         gst_element_query_position(GST_ELEMENT(m_gstPipeline),GST_FORMAT_TIME,&m_pos);
 
-        GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH || GST_SEEK_FLAG_ACCURATE);
+        GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
         
         if (!gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos)) {
                 ofLogWarning() << "Pausing seek failed" << std::endl;
