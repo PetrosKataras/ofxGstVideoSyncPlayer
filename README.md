@@ -23,16 +23,6 @@ Follow the installation instructions that you find there in order to properly in
 
 The [addon_config.mk](https://github.com/PetrosKataras/ofxGstVideoSyncPlayer/blob/master/addon_config.mk) file should pull necessary dependencies based on the platform that you are working..
 
-If you prefer the manual way here is how to:
-
-`ofxOsc` is a dependency for all platforms and you will need to add it in your projects `addons.make` file.
-
-For Linux you will have to explicitely link to `libgstnet-1.0`. You can do this by setting:
-
-`PROJECT_LDFLAGS=-lgstnet-1.0` in your projects `config.make` file.
-
-For OS X you will need to add `ofxGStreamer` in your projects `addons.make` file ( in addition to ofxOsc ).
-
 The example project configuration assumes a command line configuration and development. For CB / XCode / VS project templates we would have to look to the community or the project generator.
 
 NOTE: With current master of ofxGStreamer (114bbc84b2) and OF (cab205321) under OS X I had to remove ofxGStreamer.h and ofxGStreamer.cpp from the [addon_config.mk](https://github.com/arturoc/ofxGStreamer/blob/master/addon_config.mk#L118) in order to successfully compile a project that uses ofxGStreamer. There is a weirdness with paths happening but didnt investigate more.  
