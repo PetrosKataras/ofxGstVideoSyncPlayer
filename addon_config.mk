@@ -68,10 +68,10 @@ common:
     # ADDON_INCLUDES_EXCLUDE =
 
 linux:
-	 ADDON_PKG_CONFIG_LIBRARIES = gstnet-1.0
+	 ADDON_PKG_CONFIG_LIBRARIES = gstreamer-net-1.0
 	
 linux64:
-	 ADDON_PKG_CONFIG_LIBRARIES = gstnet-1.0
+	 ADDON_PKG_CONFIG_LIBRARIES = gstreamer-net-1.0
 	
 linuxarmv6l:
 	
