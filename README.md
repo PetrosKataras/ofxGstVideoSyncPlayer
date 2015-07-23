@@ -6,7 +6,7 @@ This addon utilizes the [gstreamer network clocks](http://gstreamer.freedesktop.
 
 It also uses ofxOsc for master/client communication ( play, pause etc. ) 
 
-It has been tested and developed with latest master OF 0.9.0 from github(03cbdb2) under Xubuntu 14.04 and OS X 10.8.5 
+It has been tested and developed with master OF 0.9.0 from github(03cbdb2) under Xubuntu 14.04 and OS X 10.8.5 
 with gstreamer 1.4.4 and gstreamer 1.4.5 ( although in theory it should work with any gstreamer version above 1.0 ) .
 
 This addon should be considered WIP. Basic functionality for play - pause and looping in a synchronized manner is there but
@@ -29,7 +29,7 @@ NOTE: With current master of ofxGStreamer (114bbc84b2) and OF (cab205321) under 
 
 ## Usage & Concept
 
-One instance acts as the master instance and subsequent instances can be started as clients that will keep in sync with this master instance. The master should always be started first before any clients. You can run multiple slave instances either locally on the same maching ( as long as you use different ports for the osc communication ) or remotely on machines in the same network or on a combination ( i.e slave instances both locally and remotely ). 
+One instance acts as the master instance and subsequent instances can be started as clients that will keep in sync with this master instance. The master should always be started first before any clients. You can run multiple slave instances either locally on the same machine ( as long as you use different ports for the osc communication ) or remotely on machines in the same network or on a combination ( i.e slave instances both locally and remotely ). 
 
 The clients will poll the clock of the pipeline running on the master machine and calibrate their time in order to keep in sync. This is all handled internally from GStreamer.
 
