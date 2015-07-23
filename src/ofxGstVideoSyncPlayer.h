@@ -5,6 +5,10 @@
 #include <gst/net/gstnet.h>
 #include "ofxOsc.h"
 
+typedef std::pair<std::string, int> ClientKey;
+typedef std::map<ClientKey, string> Clients;
+typedef Clients::iterator clients_iter;
+
 class ofxGstVideoSyncPlayer{
 
     public:
@@ -12,7 +16,9 @@ class ofxGstVideoSyncPlayer{
         ofxGstVideoSyncPlayer();
         ~ofxGstVideoSyncPlayer();
 
-        void                            init( const std::string _clockIP, const unsigned int _clockPort, bool _isMaster = false );
+        void                            initAsMaster( const std::string _clockIp, const int _clockPort, const int _oscRcvPort );
+        void                            initAsSlave( const std::string _clockIp, const int _clockPort, const int _oscRcvPort, const int _oscSndPort );
+        void                            loadAsync( std::string _path );
         bool                            load( std::string _path );
         void                            play();
         void                            update();
@@ -46,11 +52,11 @@ class ofxGstVideoSyncPlayer{
         shared_ptr<ofGstVideoPlayer>    m_gstPlayer;        ///> The gstreamer player.
         ofVideoPlayer                   m_videoPlayer;      ///> Our OF video player.
         bool                            m_isMaster;         ///> Is the master?
-        std::string                     m_clockIP;          ///> The IP of the server.
-        unsigned int                    m_clockPort;        ///> The port that should be used for the synchronization.
-        unsigned int                    m_rcvPort;          ///> osc communication.
-        unsigned int                    m_sndPort;          ///> osc communication.
-        std::vector<string>             m_connectedClients; ///> Our connected clients.
+        std::string                     m_clockIp;          ///> The IP of the server.
+        int                             m_clockPort;        ///> The port that should be used for the synchronization.
+        int                             m_rcvPort;          ///> osc communication.
+        int                             m_sndPort;          ///> osc communication.
+        Clients                         m_connectedClients; ///> Our connected clients.
         shared_ptr<ofxOscSender>        m_oscSender;        ///> osc sender.
         shared_ptr<ofxOscReceiver>      m_oscReceiver;      ///> osc receiver.
         bool                            m_loop;             ///> Should we loop?

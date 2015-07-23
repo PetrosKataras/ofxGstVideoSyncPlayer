@@ -1,16 +1,18 @@
 #include "ofApp.h"
-#include "ofGstVideoPlayer.h"
+
+#define MASTER_CLOCK_SYNC_PORT 12366 ///> The port that will be used from GStreamer for master-slave clock synchronization.
+#define MASTER_OSC_RCV_PORT 12777 ///> The port that the master listens for incoming osc messages from the clients.
+#define SLAVE_OSC_SND_PORT MASTER_OSC_RCV_PORT ///> The osc send port of the slave should be the same as the receive port of the master.
+#define SLAVE_OSC_RCV_PORT 12779 ///> You can choose any valid port for the slave to receive. Be carefull to choose a different one if you have multiple clients running on the same machine.
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetLogLevel(OF_LOG_VERBOSE);
-    ///> Pass here the IP and the port the master is running.
-    ///> False if this is a client, true if we are on the master.
-    ///> Internally the next two ports from the one you specify here
-    ///> are going to be used for the osc communication.
-    ///> So in this case 1234 will be used for the gstreamer synchronization
-    ///> and 1235 - 1236 for the osc communication between the master and the client.
-    player.init("127.0.0.1", 1234, false);
+    //ofSetLogLevel(OF_LOG_VERBOSE);
+
+    ///> Call the appropriate init function depending on if you are on a master or a slave.
+    
+    //player.initAsMaster("127.0.0.1", MASTER_CLOCK_SYNC_PORT, MASTER_OSC_RCV_PORT);
+    player.initAsSlave("127.0.0.1", MASTER_CLOCK_SYNC_PORT, SLAVE_OSC_RCV_PORT, SLAVE_OSC_SND_PORT);
     player.load("fingers.mov");
     player.loop(true);
     player.play();

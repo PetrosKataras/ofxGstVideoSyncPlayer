@@ -5,7 +5,7 @@ ofxGstVideoSyncPlayer::ofxGstVideoSyncPlayer()
     , m_gstPipeline(NULL)
     , m_gstClockTime(0)
     , m_isMaster(false)
-    , m_clockIP("127.0.0.1")
+    , m_clockIp("127.0.0.1")
     , m_clockPort(1234)
     , m_rcvPort(m_clockPort+1)
     , m_sndPort(m_clockPort+2)
@@ -15,8 +15,9 @@ ofxGstVideoSyncPlayer::ofxGstVideoSyncPlayer()
     , m_paused(true)
 {
     m_gstPlayer = shared_ptr<ofGstVideoPlayer>( new ofGstVideoPlayer );
-    m_gstPlayer->setAsynchronousLoad(true);
+    //m_gstPlayer->setAsynchronousLoad(true);
     m_videoPlayer.setPlayer( m_gstPlayer );
+    ofSetLogLevel("ofxGstVideoSyncPlayer", OF_LOG_VERBOSE);
 }
 
 ofxGstVideoSyncPlayer::~ofxGstVideoSyncPlayer()
@@ -25,8 +26,9 @@ ofxGstVideoSyncPlayer::~ofxGstVideoSyncPlayer()
         ofRemoveListener(m_gstPlayer->getGstVideoUtils()->eosEvent, this, &ofxGstVideoSyncPlayer::movieEnded);
     }
     else if( !m_isMaster && m_initialized ){
-         ofxOscMessage m;
+        ofxOscMessage m;
          m.setAddress("/client-exited");
+         m.addInt64Arg(m_rcvPort);
          m_oscSender->sendMessage(m,false);
     }
 }
@@ -34,7 +36,7 @@ ofxGstVideoSyncPlayer::~ofxGstVideoSyncPlayer()
 void ofxGstVideoSyncPlayer::movieEnded( ofEventArgs & e )
 {
     if( !m_movieEnded){
-        ofLogVerbose() << " Movie ended.. " << std::endl;
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Movie ended.. " << std::endl;
         m_movieEnded = true;
     }
 }
@@ -49,32 +51,72 @@ void ofxGstVideoSyncPlayer::setVolume( float _volume )
     m_videoPlayer.setVolume(_volume);
 }
 
-void ofxGstVideoSyncPlayer::init( const std::string _clockIP, const unsigned int _clockPort, bool _isMaster )
+void ofxGstVideoSyncPlayer::initAsMaster( const std::string _clockIp, const int _clockPort, const int _oscRcvPort )
 {
-    m_clockIP = _clockIP;
+    if( m_initialized ){
+        ofLogWarning() << " Player already initialized as MASTER with Ip : " << _clockIp << std::endl;
+        return;
+    }
+
+    m_clockIp = _clockIp;
     m_clockPort = _clockPort;
 
-    m_isMaster = _isMaster;
+    m_isMaster = true;
 
-    m_rcvPort = m_clockPort + 1;
-    m_sndPort = m_clockPort + 2;
+    m_rcvPort = _oscRcvPort;
 
     m_oscSender = shared_ptr<ofxOscSender>( new ofxOscSender );
     m_oscReceiver = shared_ptr<ofxOscReceiver>( new ofxOscReceiver );
 
-    if( m_isMaster ){
-        ofAddListener(m_gstPlayer->getGstVideoUtils()->eosEvent, this, &ofxGstVideoSyncPlayer::movieEnded);
-    }
-
-    if( !m_isMaster ){
-         m_oscReceiver->setup( m_rcvPort );
-         m_oscSender->setup( m_clockIP, m_sndPort );
-    }
-    else{
-        m_oscReceiver->setup(m_sndPort);
-    }
+    ofAddListener(m_gstPlayer->getGstVideoUtils()->eosEvent, this, &ofxGstVideoSyncPlayer::movieEnded);
+    
+    m_oscReceiver->setup(m_rcvPort);
 
     m_initialized = true;
+}
+
+void ofxGstVideoSyncPlayer::initAsSlave( const std::string _clockIp, const int _clockPort, const int _oscRcvPort, const int _oscSndPort )
+{
+    if( m_initialized ){
+        ofLogWarning() << " Player already initialized as SLAVE with Ip : " << _clockIp << std::endl;
+        return;
+    }
+
+    m_clockIp = _clockIp;
+    m_clockPort = _clockPort;
+
+    m_isMaster = false;
+
+    m_rcvPort = _oscRcvPort;
+    m_sndPort = _oscSndPort;
+
+    m_oscSender = shared_ptr<ofxOscSender>( new ofxOscSender );
+    m_oscReceiver = shared_ptr<ofxOscReceiver>( new ofxOscReceiver );
+
+    m_oscReceiver->setup(m_rcvPort);
+    m_oscSender->setup(m_clockIp, m_sndPort);
+
+    m_initialized = true;
+}
+
+void ofxGstVideoSyncPlayer::loadAsync( std::string _path )
+{
+    m_videoPlayer.loadAsync( _path );
+
+    ///> Now that we have loaded we can grab the pipeline..
+    m_gstPipeline = m_gstPlayer->getGstVideoUtils()->getPipeline();
+
+    ///> Since we will provide a network clock for the synchronization
+    ///> we disable here the internal handling of the base time.
+    gst_element_set_start_time(m_gstPipeline, GST_CLOCK_TIME_NONE);
+
+    if( !m_isMaster ){
+         ofxOscMessage m;
+         m.setAddress("/client-loaded");
+         m.addInt64Arg(m_rcvPort);
+         m_oscSender->sendMessage(m,false);
+    }
+
 }
 
 bool ofxGstVideoSyncPlayer::load( std::string _path )
@@ -98,6 +140,7 @@ bool ofxGstVideoSyncPlayer::load( std::string _path )
     if( !m_isMaster ){
          ofxOscMessage m;
          m.setAddress("/client-loaded");
+         m.addInt64Arg(m_rcvPort);
          m_oscSender->sendMessage(m,false);
     }
 
@@ -139,14 +182,16 @@ void ofxGstVideoSyncPlayer::update()
             }
 
             string _newClient = m.getRemoteIp();
-            for( auto& _client : m_connectedClients ){
-                if( _client.find(_newClient) == 0){
-                    ofLogWarning() << "Client already connected with IP : " << _newClient << std::endl;
-                    return;
-                }
+            int _newClientPort = m.getArgAsInt64(0);
+
+            ClientKey _newClientKey(m.getRemoteIp(), _newClientPort);
+
+            std::pair<clients_iter, bool> ret;
+            ret = m_connectedClients.insert(std::make_pair(_newClientKey, ofToString(ofRandom(0,1000))));
+            if( ret.second == false ){
+                ofLogError() << " Client with Ip : " << _newClient << " and Port : " << _newClientPort << " already exists! PLAYBACK will NOT work properly" << std::endl;
+                return;
             }
-            ofLogVerbose() << " NEW CLIENT LOADED ! " << _newClient << std::endl;
-            m_connectedClients.push_back( _newClient );
 
             ///> If the master is paused when the client connects pause the client also.
             if( m_paused ){
@@ -154,27 +199,34 @@ void ofxGstVideoSyncPlayer::update()
                 return;
             }
 
-            m_oscSender->setup( _newClient, m_rcvPort );
+            ofLogVerbose("ofxGstVideoSyncPlayer") << "New client connected with IP : " << _newClient << " and port : " << _newClientPort << std::endl;
+
+            m_oscSender->setup(_newClient, _newClientPort);
             ofxOscMessage m;
             m.setAddress("/client-init-time");
             m.addInt64Arg(m_gstClockTime);
             m.addInt64Arg(m_pos);
-            m.setRemoteEndpoint(_newClient, m_rcvPort);
+            m.setRemoteEndpoint(_newClient, _newClientPort);
             m_oscSender->sendMessage(m,false);
 
         }
         else if( m.getAddress() == "/client-exited" && m_isMaster ){
-            string _newClient = m.getRemoteIp();
-            for( auto it = m_connectedClients.begin(); it < m_connectedClients.end(); ++it ){
-                if( (*it).find(_newClient) == 0 ){
-                    ofLogVerbose() << "Disconnecting client with IP : " << _newClient << std::endl;
-                    m_connectedClients.erase(it);
-                    return;
-                }
+            
+            string _exitingClient = m.getRemoteIp();
+            int _exitingClientPort = m.getArgAsInt64(0);
+
+            ClientKey _clientExit( _exitingClient, _exitingClientPort ); 
+            clients_iter it = m_connectedClients.find(_clientExit);
+
+            if( it != m_connectedClients.end() ){
+                auto temp = it;
+                ofLogVerbose("ofxGstVideoSyncPlayer") << "Disconnecting client with IP : " << _exitingClient << " and port : " << _exitingClientPort << std::endl;
+                m_connectedClients.erase(temp);
+                
             }
         }
         else if( m.getAddress() == "/client-init-time" && !m_isMaster ){
-            ofLogVerbose() << " CLIENT RECEIVED MASTER INIT TIME! "  << m.getRemoteIp() <<std::endl;
+            ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT RECEIVED MASTER INIT TIME! "  << m.getRemoteIp() <<std::endl;
             m_pos = m.getArgAsInt64(1);
 
             //gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
@@ -198,7 +250,7 @@ void ofxGstVideoSyncPlayer::update()
         
         }
         else if( m.getAddress() == "/play" && !m_isMaster ){
-            ofLogVerbose() << " CLIENT ---> PLAY " << std::endl;
+            ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PLAY " << std::endl;
             
             ///> Set the base time of the slave network clock.
             setClientClock(m.getArgAsInt64(0));
@@ -211,7 +263,7 @@ void ofxGstVideoSyncPlayer::update()
         }
         else if( m.getAddress() == "/pause" && !m_isMaster ){
             m_pos = m.getArgAsInt64(0);
-            ofLogVerbose() << " CLIENT ---> PAUSE " << std::endl;
+            ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PAUSE " << std::endl;
 
             gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
             gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
@@ -231,7 +283,7 @@ void ofxGstVideoSyncPlayer::update()
         }
         else if( m.getAddress() == "/loop" && !m_isMaster ){
 
-            ofLogVerbose() << " CLIENT ---> LOOP " << std::endl;
+            ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> LOOP " << std::endl;
 
             ///> Get ready to start over..
             gst_element_set_state(m_gstPipeline, GST_STATE_READY);
@@ -286,7 +338,7 @@ void ofxGstVideoSyncPlayer::setMasterClock()
     ///> Set this clock as the master network provider clock.
     ///> The slaves are going to poll this clock through the network
     ///> and adjust their times based on this clock and their local observations.
-    gst_net_time_provider_new(m_gstClock, m_clockIP.c_str(), m_clockPort);
+    gst_net_time_provider_new(m_gstClock, m_clockIp.c_str(), m_clockPort);
 
     ///> Grab the base time..
     m_gstClockTime = gst_clock_get_time(m_gstClock);
@@ -308,7 +360,7 @@ void ofxGstVideoSyncPlayer::setClientClock( GstClockTime _baseTime )
     m_gstClock = NULL;
 
     ///> Create the slave network clock with an initial time.
-    m_gstClock = gst_net_client_clock_new(NULL, m_clockIP.c_str(), m_clockPort, m_gstClockTime);
+    m_gstClock = gst_net_client_clock_new(NULL, m_clockIp.c_str(), m_clockPort, m_gstClockTime);
 
     ///> Be explicit.
     gst_pipeline_use_clock(GST_PIPELINE(m_gstPipeline), m_gstClock);
@@ -379,11 +431,11 @@ void ofxGstVideoSyncPlayer::sendPauseMsg(){
     if( !m_isMaster || !m_initialized ) return;
 
     for( auto& _client : m_connectedClients ){
-        m_oscSender->setup( _client, m_rcvPort );
+        m_oscSender->setup(_client.first.first, _client.first.second);
         ofxOscMessage m;
         m.setAddress("/pause");
         m.addInt64Arg(m_pos);
-        m.setRemoteEndpoint(_client, m_rcvPort);
+        m.setRemoteEndpoint(_client.first.first, _client.first.second);
         m_oscSender->sendMessage(m,false);
     }
 }
@@ -393,11 +445,12 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
     if( !m_isMaster || !m_initialized ) return;
 
     for( auto& _client : m_connectedClients ){
-        m_oscSender->setup( _client, m_rcvPort );
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending PLAY to client : " << _client.first.first << " at port : " << _client.first.second << std::endl;
+        m_oscSender->setup( _client.first.first, _client.first.second );
         ofxOscMessage m;
         m.setAddress("/play");
         m.addInt64Arg(m_gstClockTime);
-        m.setRemoteEndpoint(_client, m_rcvPort);
+        m.setRemoteEndpoint(_client.first.first, _client.first.second);
         m_oscSender->sendMessage(m,false);
     }
 }
@@ -407,11 +460,11 @@ void ofxGstVideoSyncPlayer::sendLoopMsg()
     if( !m_isMaster || !m_initialized ) return;
 
     for( auto& _client : m_connectedClients ){
-        m_oscSender->setup( _client, m_rcvPort );
+        m_oscSender->setup( _client.first.first, _client.first.second );
         ofxOscMessage m;
         m.setAddress("/loop");
         m.addInt64Arg(m_gstClockTime);
-        m.setRemoteEndpoint(_client, m_rcvPort);
+        m.setRemoteEndpoint(_client.first.first, _client.first.second);
         m_oscSender->sendMessage(m,false);
     }
 }
