@@ -32,6 +32,7 @@ class ofxGstVideoSyncPlayer{
         ofTexture                       getTexture();
         bool                            isPaused();
         bool                            isMovieEnded();
+        bool                            isMaster();
  
     private:
         
