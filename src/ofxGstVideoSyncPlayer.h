@@ -6,7 +6,7 @@
 #include "ofxOsc.h"
 
 typedef std::pair<std::string, int> ClientKey;
-typedef std::map<ClientKey, string> Clients;
+typedef std::set<ClientKey> Clients;
 typedef Clients::iterator clients_iter;
 
 class ofxGstVideoSyncPlayer{

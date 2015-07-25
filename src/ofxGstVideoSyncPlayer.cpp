@@ -1,7 +1,5 @@
 #include "ofxGstVideoSyncPlayer.h"
 
-static int staticClientId = 0;
-
 ofxGstVideoSyncPlayer::ofxGstVideoSyncPlayer()
     : m_gstClock(NULL)
     , m_gstPipeline(NULL)
@@ -194,10 +192,8 @@ void ofxGstVideoSyncPlayer::update()
 
                 ClientKey _newClientKey(m.getRemoteIp(), _newClientPort);
 
-                staticClientId += 1;
-
                 std::pair<clients_iter, bool> ret;
-                ret = m_connectedClients.insert(std::make_pair(_newClientKey, ofToString(staticClientId)));
+                ret = m_connectedClients.insert(_newClientKey);
                 if( ret.second == false ){
                     ofLogError() << " Client with Ip : " << _newClient << " and Port : " << _newClientPort << " already exists! PLAYBACK will NOT work properly" << std::endl;
                     return;
@@ -434,12 +430,12 @@ void ofxGstVideoSyncPlayer::sendPauseMsg(){
     if( !m_isMaster || !m_initialized || !m_oscSender) return;
 
     for( auto& _client : m_connectedClients ){
-        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending PAUSE to client : " << _client.first.first << " at port : " << _client.first.second << std::endl;
-        m_oscSender->setup(_client.first.first, _client.first.second);
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending PAUSE to client : " << _client.first << " at port : " << _client.second << std::endl;
+        m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/pause");
         m.addInt64Arg(m_pos);
-        m.setRemoteEndpoint(_client.first.first, _client.first.second);
+        m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
 }
@@ -449,12 +445,12 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
     if( !m_isMaster || !m_initialized || !m_oscSender ) return;
 
     for( auto& _client : m_connectedClients ){
-        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending PLAY to client : " << _client.first.first << " at port : " << _client.first.second << std::endl;
-        m_oscSender->setup(_client.first.first, _client.first.second);
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending PLAY to client : " << _client.first << " at port : " << _client.second << std::endl;
+        m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/play");
         m.addInt64Arg(m_gstClockTime);
-        m.setRemoteEndpoint(_client.first.first, _client.first.second);
+        m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
 }
@@ -464,12 +460,12 @@ void ofxGstVideoSyncPlayer::sendLoopMsg()
     if( !m_isMaster || !m_initialized || !m_oscSender ) return;
 
     for( auto& _client : m_connectedClients ){
-        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending LOOP to client : " << _client.first.first << " at port : " << _client.first.second << std::endl;
-        m_oscSender->setup(_client.first.first, _client.first.second);
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending LOOP to client : " << _client.first << " at port : " << _client.second << std::endl;
+        m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/loop");
         m.addInt64Arg(m_gstClockTime);
-        m.setRemoteEndpoint(_client.first.first, _client.first.second);
+        m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
 }
