@@ -33,6 +33,7 @@ class ofxGstVideoSyncPlayer{
         bool                            isPaused();
         bool                            isMovieEnded();
         bool                            isMaster();
+        void                            exit(ofEventArgs & args);
  
     private:
         

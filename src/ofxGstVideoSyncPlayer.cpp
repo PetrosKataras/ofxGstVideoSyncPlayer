@@ -14,15 +14,21 @@ ofxGstVideoSyncPlayer::ofxGstVideoSyncPlayer()
     , m_movieEnded(false)
     , m_paused(true)
 {
+    ofSetLogLevel("ofxGstVideoSyncPlayer", OF_LOG_VERBOSE);
+
     m_gstPlayer = shared_ptr<ofGstVideoPlayer>(new ofGstVideoPlayer);
     m_videoPlayer.setPlayer(m_gstPlayer);
-    ofSetLogLevel("ofxGstVideoSyncPlayer", OF_LOG_VERBOSE);
+
+    ofAddListener(ofEvents().exit, this, &ofxGstVideoSyncPlayer::exit);
 }
 
 ofxGstVideoSyncPlayer::~ofxGstVideoSyncPlayer()
 {
+    ofRemoveListener(ofEvents().exit, this, &ofxGstVideoSyncPlayer::exit);
+
     if( m_isMaster && m_initialized ){
         ofRemoveListener(m_gstPlayer->getGstVideoUtils()->eosEvent, this, &ofxGstVideoSyncPlayer::movieEnded);
+        m_initialized = false;
     }
     else if( !m_isMaster && m_initialized ){
         ofxOscMessage m;
@@ -31,6 +37,21 @@ ofxGstVideoSyncPlayer::~ofxGstVideoSyncPlayer()
          if( m_oscSender ){
              m_oscSender->sendMessage(m,false);
          }
+         m_initialized = false;
+    }
+}
+
+void ofxGstVideoSyncPlayer::exit(ofEventArgs & args)
+{
+    //> Triggered when app exits.
+    if( !m_isMaster && m_initialized ){
+        ofxOscMessage m;
+        m.setAddress("/client-exited");
+        m.addInt64Arg(m_rcvPort);
+        if( m_oscSender ){
+            m_oscSender->sendMessage(m,false);
+        }
+        m_initialized = false;
     }
 }
 
@@ -219,7 +240,6 @@ void ofxGstVideoSyncPlayer::update()
 
             }
             else if( m.getAddress() == "/client-exited" && m_isMaster ){
-                
                 string _exitingClient = m.getRemoteIp();
                 int _exitingClientPort = m.getArgAsInt64(0);
 
