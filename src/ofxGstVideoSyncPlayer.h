@@ -35,6 +35,15 @@ class ofxGstVideoSyncPlayer{
         bool                            isMaster();
         void                            exit(ofEventArgs & args);
         void                            setPixelFormat( const ofPixelFormat & _pixelFormat ); 
+        const Clients&                  getConnectedClients();
+    protected:
+
+        Clients                         m_connectedClients; ///> Our connected clients.
+        shared_ptr<ofxOscSender>        m_oscSender;        ///> osc sender.
+        shared_ptr<ofxOscReceiver>      m_oscReceiver;      ///> osc receiver.
+
+        bool                            m_isMaster;         ///> Is the master?
+        bool                            m_initialized;      ///> If the player initialized properly ??
     private:
         
         void                            setMasterClock();
@@ -43,6 +52,7 @@ class ofxGstVideoSyncPlayer{
         void                            sendPauseMsg();
         void                            sendPlayMsg();
         void                            sendLoopMsg();
+        void                            sendEosMsg();
 
         void                            movieEnded( ofEventArgs & e );
 
@@ -53,16 +63,11 @@ class ofxGstVideoSyncPlayer{
         GstClockTime                    m_gstClockTime;     ///> The base time.
         shared_ptr<ofGstVideoPlayer>    m_gstPlayer;        ///> The gstreamer player.
         ofVideoPlayer                   m_videoPlayer;      ///> Our OF video player.
-        bool                            m_isMaster;         ///> Is the master?
         std::string                     m_clockIp;          ///> The IP of the server.
         int                             m_clockPort;        ///> The port that should be used for the synchronization.
         int                             m_rcvPort;          ///> osc communication.
         int                             m_sndPort;          ///> osc communication.
-        Clients                         m_connectedClients; ///> Our connected clients.
-        shared_ptr<ofxOscSender>        m_oscSender;        ///> osc sender.
-        shared_ptr<ofxOscReceiver>      m_oscReceiver;      ///> osc receiver.
         bool                            m_loop;             ///> Should we loop?
-        bool                            m_initialized;      ///> If the player initialized properly ??
         bool                            m_movieEnded;       ///> Has the video ended??
         gint64                          m_pos;              ///> Position of the player.
         bool                            m_paused;           ///> Is the player paused ??

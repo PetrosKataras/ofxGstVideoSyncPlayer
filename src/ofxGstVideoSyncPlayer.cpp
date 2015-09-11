@@ -60,6 +60,8 @@ void ofxGstVideoSyncPlayer::movieEnded( ofEventArgs & e )
     if( !m_movieEnded ){
         ofLogVerbose("ofxGstVideoSyncPlayer") << " Movie ended.. " << std::endl;
         m_movieEnded = true;
+        m_paused = true;
+        sendEosMsg();
     }
 }
 
@@ -178,6 +180,7 @@ void ofxGstVideoSyncPlayer::update()
 {
     if( m_isMaster && m_loop && m_movieEnded ){
         
+
         ///> Get ready to start over..
         gst_element_set_state(m_gstPipeline, GST_STATE_READY);
         gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
@@ -194,6 +197,7 @@ void ofxGstVideoSyncPlayer::update()
         sendLoopMsg();
 
         m_movieEnded = false;
+        m_paused = false;
     }
 
     if( m_oscReceiver ){
@@ -266,6 +270,7 @@ void ofxGstVideoSyncPlayer::update()
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
                 m_paused = false;
+                m_movieEnded = false;
             
             }
             else if( m.getAddress() == "/play" && !m_isMaster ){
@@ -279,6 +284,7 @@ void ofxGstVideoSyncPlayer::update()
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
                 m_paused = false;
+                m_movieEnded =false;
             }
             else if( m.getAddress() == "/pause" && !m_isMaster ){
                 m_pos = m.getArgAsInt64(0);
@@ -305,7 +311,7 @@ void ofxGstVideoSyncPlayer::update()
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> LOOP " << std::endl;
 
                 ///> Get ready to start over..
-                gst_element_set_state(m_gstPipeline, GST_STATE_READY);
+                gst_element_set_state(m_gstPipeline, GST_STATE_NULL);
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
                 ///> Set the slave clock and base_time.
@@ -315,11 +321,18 @@ void ofxGstVideoSyncPlayer::update()
                 gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
+                m_movieEnded = false;
                 m_paused = false;
+            }
+            else if( m.getAddress() == "/eos" && !m_isMaster ){
+                ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
+
+                m_movieEnded = true; 
+                m_paused = true;
             }
         }
     }
-    if( m_videoPlayer.isLoaded() ){
+    if( m_videoPlayer.isLoaded() && !isPaused() && !isMovieEnded() ){
         m_videoPlayer.update();
     }
 }
@@ -327,14 +340,30 @@ void ofxGstVideoSyncPlayer::update()
 void ofxGstVideoSyncPlayer::play()
 {
     if( !m_isMaster || !m_paused ) return;
-    
     setMasterClock();
 
-    gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
-    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    if( m_movieEnded ){
+        ///> Get ready to start over..
+        gst_element_set_state(m_gstPipeline, GST_STATE_READY);
+        gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
-    sendPlayMsg();
+        ///> Set the master clock i.e This the clock that the slaves will poll 
+        ///> in order to keep in-sync.
+        setMasterClock();
 
+        ///> ..and start playing the master..
+        gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
+        gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+        sendLoopMsg();
+    }
+    else{
+        gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
+        gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
+        sendPlayMsg();
+    }
+
+    m_movieEnded = false;
     m_paused = false;
 
 }
@@ -490,6 +519,20 @@ void ofxGstVideoSyncPlayer::sendLoopMsg()
     }
 }
 
+void ofxGstVideoSyncPlayer::sendEosMsg()
+{
+    if( !m_isMaster || !m_initialized || !m_oscSender ) return;
+
+    for( auto& _client : m_connectedClients ){
+        ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending EOS to client : " << _client.first << " at port : " << _client.second << std::endl;
+        m_oscSender->setup(_client.first, _client.second);
+        ofxOscMessage m;
+        m.setAddress("/eos");
+        m.setRemoteEndpoint(_client.first, _client.second);
+        m_oscSender->sendMessage(m,false);
+    }
+}
+
 ofTexture ofxGstVideoSyncPlayer::getTexture()
 {
     return m_videoPlayer.getTexture();
@@ -513,4 +556,9 @@ bool ofxGstVideoSyncPlayer::isMaster()
 void ofxGstVideoSyncPlayer::setPixelFormat( const ofPixelFormat & _pixelFormat )
 {
     m_videoPlayer.setPixelFormat(_pixelFormat);
+}
+
+const Clients& ofxGstVideoSyncPlayer::getConnectedClients()
+{
+    return m_connectedClients;
 }
