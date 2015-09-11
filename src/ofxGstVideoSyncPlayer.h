@@ -34,7 +34,7 @@ class ofxGstVideoSyncPlayer{
         bool                            isMovieEnded();
         bool                            isMaster();
         void                            exit(ofEventArgs & args);
- 
+        void                            setPixelFormat( const ofPixelFormat & _pixelFormat ); 
     private:
         
         void                            setMasterClock();

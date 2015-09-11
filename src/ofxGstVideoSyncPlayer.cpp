@@ -396,10 +396,10 @@ void ofxGstVideoSyncPlayer::draw( ofPoint _pos, float _width, float _height )
     if( !m_videoPlayer.getPixels().isAllocated() || !m_videoPlayer.getTexture().isAllocated() ) return;
 
     if( _width == -1 || _height == -1 ){
-        m_videoPlayer.getTexture().draw(_pos); 
+        m_videoPlayer.draw(_pos); 
     }
     else{
-        m_videoPlayer.getTexture().draw(_pos, _width, _height);
+        m_videoPlayer.draw(_pos, _width, _height);
     }
 }
 
@@ -510,3 +510,7 @@ bool ofxGstVideoSyncPlayer::isMaster()
     return m_isMaster;
 }
 
+void ofxGstVideoSyncPlayer::setPixelFormat( const ofPixelFormat & _pixelFormat )
+{
+    m_videoPlayer.setPixelFormat(_pixelFormat);
+}
