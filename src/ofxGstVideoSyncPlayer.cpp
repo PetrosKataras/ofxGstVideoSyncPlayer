@@ -340,16 +340,13 @@ void ofxGstVideoSyncPlayer::update()
 void ofxGstVideoSyncPlayer::play()
 {
     if( !m_isMaster || !m_paused ) return;
+
     setMasterClock();
 
     if( m_movieEnded ){
         ///> Get ready to start over..
         gst_element_set_state(m_gstPipeline, GST_STATE_READY);
         gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-
-        ///> Set the master clock i.e This the clock that the slaves will poll 
-        ///> in order to keep in-sync.
-        setMasterClock();
 
         ///> ..and start playing the master..
         gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
