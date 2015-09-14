@@ -163,6 +163,20 @@ bool ofxGstVideoSyncPlayer::load( std::string _path )
     ///> we disable here the internal handling of the base time.
     gst_element_set_start_time(m_gstPipeline, GST_CLOCK_TIME_NONE);
 
+    if( m_isMaster ){
+        ///> Remove any previously used clock.
+        if(m_gstClock) g_object_unref((GObject*) m_gstClock);
+        m_gstClock = NULL;
+
+        ///> Grab the pipeline clock.
+        m_gstClock = gst_pipeline_get_clock(GST_PIPELINE(m_gstPipeline));
+    
+        ///> Set this clock as the master network provider clock.
+        ///> The slaves are going to poll this clock through the network
+        ///> and adjust their times based on this clock and their local observations.
+        gst_net_time_provider_new(m_gstClock, m_clockIp.c_str(), m_clockPort);
+    }
+
     if( !m_isMaster ){
          ofxOscMessage m;
          m.setAddress("/client-loaded");
@@ -369,21 +383,11 @@ void ofxGstVideoSyncPlayer::setMasterClock()
 {
     if( !m_isMaster ) return;
 
-    ///> Remove any previously used clock.
-    if(m_gstClock) g_object_unref((GObject*) m_gstClock);
-    m_gstClock = NULL;
-
-    ///> Grab the pipeline clock.
-    m_gstClock = gst_pipeline_get_clock(GST_PIPELINE(m_gstPipeline));
 
     ///> Be explicit on which clock we are going to use.
     gst_pipeline_use_clock(GST_PIPELINE(m_gstPipeline), m_gstClock);
     gst_pipeline_set_clock(GST_PIPELINE(m_gstPipeline), m_gstClock);
 
-    ///> Set this clock as the master network provider clock.
-    ///> The slaves are going to poll this clock through the network
-    ///> and adjust their times based on this clock and their local observations.
-    gst_net_time_provider_new(m_gstClock, m_clockIp.c_str(), m_clockPort);
 
     ///> Grab the base time..
     m_gstClockTime = gst_clock_get_time(m_gstClock);
