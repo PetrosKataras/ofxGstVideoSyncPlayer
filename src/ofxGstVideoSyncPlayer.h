@@ -22,6 +22,7 @@ class ofxGstVideoSyncPlayer{
         bool                            load( std::string _path );
         void                            play();
         void                            update();
+        void                            seek(long int position);
         void                            draw( ofPoint _pos, float _width = -1, float _height = -1 );
         void                            drawSubsection( float _x, float _y, float _w, float _h, float _sx, float _sy );
         void                            loop( bool _loop );
@@ -34,7 +35,7 @@ class ofxGstVideoSyncPlayer{
         bool                            isMovieEnded();
         bool                            isMaster();
         void                            exit(ofEventArgs & args);
-        void                            setPixelFormat( const ofPixelFormat & _pixelFormat ); 
+        void                            setPixelFormat( const ofPixelFormat & _pixelFormat );
         const Clients&                  getConnectedClients();
     protected:
 
@@ -45,7 +46,7 @@ class ofxGstVideoSyncPlayer{
         bool                            m_isMaster;         ///> Is the master?
         bool                            m_initialized;      ///> If the player initialized properly ??
     private:
-        
+
         void                            setMasterClock();
         void                            setClientClock( GstClockTime _baseTime );
 
