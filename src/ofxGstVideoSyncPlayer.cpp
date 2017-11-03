@@ -402,9 +402,9 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   } else {
     gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
     ofLogNotice("done seeking");
-    setMasterClock();
 
     sendSeekMsg(time_nanoseconds);
+    setMasterClock();
   }
 
 
