@@ -401,8 +401,8 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
       ofLogWarning("failed to seek");
   } else {
     sendSeekMsg(time_nanoseconds);
-    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    ofLogNotice("done seeking");
+    // gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    // ofLogNotice("done seeking");
   }
 
 
