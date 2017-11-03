@@ -379,12 +379,11 @@ void ofxGstVideoSyncPlayer::play()
 
 }
 
-void ofxGstVideoSyncPlayer::seek(long int position) {
+void ofxGstVideoSyncPlayer::seek(long int time_ms) {
+  gint64 time_nanoseconds = time_ms * pow(10, 6);
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
-  if (!gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, position)) {
-          ofLogWarning() << "Seek failed" << std::endl;
-  }
+  if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds));
 
 }
 

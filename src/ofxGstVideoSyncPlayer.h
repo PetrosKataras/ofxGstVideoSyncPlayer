@@ -22,7 +22,7 @@ class ofxGstVideoSyncPlayer{
         bool                            load( std::string _path );
         void                            play();
         void                            update();
-        void                            seek(long int position);
+        void                            seek(gint64 position);
         void                            draw( ofPoint _pos, float _width = -1, float _height = -1 );
         void                            drawSubsection( float _x, float _y, float _w, float _h, float _sx, float _sy );
         void                            loop( bool _loop );
