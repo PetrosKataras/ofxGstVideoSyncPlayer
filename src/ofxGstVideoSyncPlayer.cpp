@@ -550,7 +550,7 @@ void ofxGstVideoSyncPlayer::sendPauseMsg(){
         m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/pause");
-        m.addInt64Arg(m_pos + 1000000000000);
+        m.addInt64Arg(m_pos);
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
@@ -565,7 +565,7 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
         m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/play");
-        m.addInt64Arg(m_gstClockTime);
+        m.addInt64Arg(m_gstClockTime + 967547000);
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
