@@ -351,6 +351,11 @@ void ofxGstVideoSyncPlayer::update()
 
                 ///> Set the slave clock and base_time.
                 setClientClock(m.getArgAsInt64(0));
+
+                ///> And start playing..
+                gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
+                gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
             }
             else if( m.getAddress() == "/eos" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
