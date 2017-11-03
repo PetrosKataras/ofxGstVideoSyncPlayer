@@ -345,13 +345,12 @@ void ofxGstVideoSyncPlayer::update()
 
                 GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
-                ///> Set the slave clock and base_time.
-                setClientClock(m.getArgAsInt64(0));
-
                 if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, newPosition )) {
                         ofLogWarning () << "Resync seek failed" << std::endl;
                 }
 
+                ///> Set the slave clock and base_time.
+                setClientClock(m.getArgAsInt64(0));
             }
             else if( m.getAddress() == "/eos" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
@@ -403,8 +402,9 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   } else {
     gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
     ofLogNotice("done seeking");
-    gst_element_query_position(GST_ELEMENT(m_gstPipeline),GST_FORMAT_TIME,&m_pos);
-    sendSeekMsg(m_pos);
+    setMasterClock();
+
+    sendSeekMsg(time_nanoseconds);
   }
 
 
