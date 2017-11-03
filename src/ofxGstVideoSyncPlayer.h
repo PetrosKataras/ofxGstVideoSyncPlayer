@@ -23,6 +23,10 @@ class ofxGstVideoSyncPlayer{
         void                            play();
         void                            update();
         void                            seek(gint64 position);
+        gint64                          getPosition();
+        unsigned long int               getPositionMilliseconds();
+        gint64                          getDuration();
+        unsigned long int               getDurationMilliseconds();
         void                            draw( ofPoint _pos, float _width = -1, float _height = -1 );
         void                            drawSubsection( float _x, float _y, float _w, float _h, float _sx, float _sy );
         void                            loop( bool _loop );

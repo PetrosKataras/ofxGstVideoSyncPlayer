@@ -387,6 +387,32 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
 
 }
 
+gint64 ofxGstVideoSyncPlayer::getPosition() {
+  gint64 pos;
+  if (gst_element_query_position (m_gstPipeline, GST_FORMAT_TIME, &pos)) {
+    return pos;
+  } else {
+    return 0;
+  }
+}
+
+unsigned long int ofxGstVideoSyncPlayer::getPositionMilliseconds() {
+  return getPosition() / pow(10, 6);
+}
+
+gint64 ofxGstVideoSyncPlayer::getDuration() {
+  gint64 len;
+  if (gst_element_query_duration(m_gstPipeline, GST_FORMAT_TIME, &len)) {
+    return len;
+  } else {
+    return 0;
+  }
+}
+
+unsigned long int ofxGstVideoSyncPlayer::getDurationMilliseconds() {
+  return getDuration() / pow(10, 6);
+}
+
 void ofxGstVideoSyncPlayer::setMasterClock()
 {
     if( !m_isMaster ) return;
