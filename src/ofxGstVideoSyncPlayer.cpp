@@ -397,14 +397,20 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   gint64 time_nanoseconds = time_ms * pow(10, 6);
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
+  uint64_t t1 = ofGetElapsedTimeMicros();
+
   if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
       ofLogWarning("failed to seek");
   } else {
-    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    ofLogNotice("done seeking");
+    GstState state;
+    gst_element_get_state(m_gstPipeline, &state, NULL, GST_CLOCK_TIME_NONE);
+    if (state == GST_STATE_PLAYING) {
+      uint64_t elapsed = ofGetElapsedTimeMicros() - t1;
+      ofLogNotice("done seeking after", ofToString(elapsed));
+      setMasterClock();
+      sendSeekMsg(time_nanoseconds);
+    }
 
-    sendSeekMsg(time_nanoseconds);
-    setMasterClock();
   }
 
 
