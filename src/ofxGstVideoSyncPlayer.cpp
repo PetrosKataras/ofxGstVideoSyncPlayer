@@ -343,9 +343,9 @@ void ofxGstVideoSyncPlayer::update()
                 gint64 newPosition = m.getArgAsInt64(1);
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> SEEK to " << ofToString(newPosition) << std::endl;
 
-                // GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
+                GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
-                if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, GST_SEEK_FLAG_ACCURATE, newPosition )) {
+                if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, newPosition )) {
                         ofLogWarning () << "Resync seek failed" << std::endl;
                 }
 
