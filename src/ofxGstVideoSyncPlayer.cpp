@@ -398,6 +398,7 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
   uint64_t t1 = ofGetElapsedTimeMicros();
+  ofLogNotice("m_gstClockTime pre", ofToString(m_gstClockTime));
 
   if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
       ofLogWarning("failed to seek");
@@ -406,11 +407,13 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
     gst_element_get_state(m_gstPipeline, &state, NULL, GST_CLOCK_TIME_NONE);
     if (state == GST_STATE_PLAYING) {
       uint64_t elapsed = ofGetElapsedTimeMicros() - t1;
+      ofLogNotice("m_gstClockTime after seek", ofToString(m_gstClockTime));
       ofLogNotice("done seeking after", ofToString(elapsed));
       setMasterClock();
       sendSeekMsg(time_nanoseconds);
-    }
+      ofLogNotice("m_gstClockTime after setMasterClock", ofToString(m_gstClockTime));
 
+    }
   }
 
 
@@ -547,7 +550,7 @@ void ofxGstVideoSyncPlayer::sendPauseMsg(){
         m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/pause");
-        m.addInt64Arg(m_pos);
+        m.addInt64Arg(m_pos + 1000000000000);
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
@@ -571,6 +574,8 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
 void ofxGstVideoSyncPlayer::sendSeekMsg(gint64 newPosition)
 {
   if( !m_isMaster || !m_initialized || !m_oscSender ) return;
+
+  ofLogNotice("m_gstClockTime for sendSeekMsg", ofToString(m_gstClockTime));
 
   for( auto& _client : m_connectedClients ){
       ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending SEEK to client : " << _client.first << " at port : " << _client.second << std::endl;
