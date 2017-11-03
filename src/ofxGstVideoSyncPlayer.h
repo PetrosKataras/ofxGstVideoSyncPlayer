@@ -56,6 +56,7 @@ class ofxGstVideoSyncPlayer{
 
         void                            sendPauseMsg();
         void                            sendPlayMsg();
+        void                            sendSeekMsg(gint64 newPosition);
         void                            sendLoopMsg();
         void                            sendEosMsg();
 

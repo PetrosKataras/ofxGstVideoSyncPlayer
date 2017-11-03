@@ -338,6 +338,20 @@ void ofxGstVideoSyncPlayer::update()
                 m_movieEnded = false;
                 m_paused = false;
             }
+            else if( m.getAddress() == "/seek" && !m_isMaster ){
+
+                gint64 newPosition = m.getArgAsInt64(1);
+                ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> SEEK to " << ofToString(newPosition) << std::endl;
+
+                GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
+
+                if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, newPosition )) {
+                        ofLogWarning () << "Resync seek failed" << std::endl;
+                }
+
+                ///> Set the slave clock and base_time.
+                setClientClock(m.getArgAsInt64(0));
+            }
             else if( m.getAddress() == "/eos" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
 
@@ -385,6 +399,10 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
 
   if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
       ofLogWarning("failed to seek");
+  } else {
+    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    ofLogNotice("done seeking");
+    sendSeekMsg(time_nanoseconds);
   }
 
 
@@ -540,6 +558,22 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
+}
+
+void ofxGstVideoSyncPlayer::sendSeekMsg(gint64 newPosition)
+{
+  if( !m_isMaster || !m_initialized || !m_oscSender ) return;
+
+  for( auto& _client : m_connectedClients ){
+      ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending SEEK to client : " << _client.first << " at port : " << _client.second << std::endl;
+      m_oscSender->setup(_client.first, _client.second);
+      ofxOscMessage m;
+      m.setAddress("/seek");
+      m.addInt64Arg(m_gstClockTime);
+      m.addInt64Arg(newPosition);
+      m.setRemoteEndpoint(_client.first, _client.second);
+      m_oscSender->sendMessage(m,false);
+  }
 }
 
 void ofxGstVideoSyncPlayer::sendLoopMsg()
