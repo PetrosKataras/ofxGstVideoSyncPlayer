@@ -345,9 +345,6 @@ void ofxGstVideoSyncPlayer::update()
               m_pos = m.getArgAsInt64(1);
               ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> SEEK (PAUSE) to" << ofToString(m_pos) << std::endl;
 
-              gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
-              gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-
               GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
               if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos )) {
