@@ -291,7 +291,7 @@ void ofxGstVideoSyncPlayer::update()
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PLAY " << std::endl;
 
                 ///> Set the base time of the slave network clock.
-                setClientClock(m.getArgAsInt64(0));
+                setClientClock((GstClockTime)m.getArgAsInt64(0));
                 ofLogNotice("new base time", ofToString(m.getArgAsInt64(0)));
 
                 ///> And start playing..
@@ -576,8 +576,6 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
 void ofxGstVideoSyncPlayer::sendSeekMsg(gint64 newPosition)
 {
   if( !m_isMaster || !m_initialized || !m_oscSender ) return;
-
-  ofLogNotice("m_gstClockTime for sendSeekMsg", ofToString(m_gstClockTime));
 
   for( auto& _client : m_connectedClients ){
       ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending SEEK to client : " << _client.first << " at port : " << _client.second << std::endl;
