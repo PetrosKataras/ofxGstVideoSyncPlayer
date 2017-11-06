@@ -412,9 +412,9 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   } else {
     GstState state;
     gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    ofLogNotice("clock time setMasterClock()", ofToString(m_gstClockTime));
-    sendPlayMsg();
     setMasterClock();
+    ofLogNotice("clock time setMasterClock()", ofToString(m_gstClockTime));
+    // sendPlayMsg();
   }
 
 
