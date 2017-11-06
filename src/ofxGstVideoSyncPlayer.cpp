@@ -349,6 +349,9 @@ void ofxGstVideoSyncPlayer::update()
                         ofLogWarning () << "Resync seek failed" << std::endl;
                 }
 
+                // first, wait for seek to complete
+                gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
                 ///> Get ready to start over..
                 gst_element_set_state(m_gstPipeline, GST_STATE_NULL);
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
