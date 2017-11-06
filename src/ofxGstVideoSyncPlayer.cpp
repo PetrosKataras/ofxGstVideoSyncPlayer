@@ -304,6 +304,7 @@ void ofxGstVideoSyncPlayer::update()
             else if( m.getAddress() == "/pause" && !m_isMaster ){
                 m_pos = m.getArgAsInt64(0);
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PAUSE " << std::endl;
+                ofLogNotice("client pause seek to position", ofToString(m_pos));
 
                 gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
