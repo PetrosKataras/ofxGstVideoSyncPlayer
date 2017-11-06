@@ -349,8 +349,18 @@ void ofxGstVideoSyncPlayer::update()
                         ofLogWarning () << "Resync seek failed" << std::endl;
                 }
 
+                ///> Get ready to start over..
+                gst_element_set_state(m_gstPipeline, GST_STATE_NULL);
+                gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
                 ///> Set the slave clock and base_time.
                 setClientClock(m.getArgAsInt64(0));
+
+                ///> and go..
+                gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
+                gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
+
             }
             else if( m.getAddress() == "/eos" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
@@ -403,6 +413,7 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
       ofLogWarning("failed to seek");
   } else {
+    sendSeekMsg(time_nanoseconds);
     GstState state;
     gst_element_get_state(m_gstPipeline, &state, NULL, GST_CLOCK_TIME_NONE);
     if (state == GST_STATE_PLAYING) {
@@ -410,7 +421,6 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
       ofLogNotice("m_gstClockTime after seek", ofToString(m_gstClockTime));
       ofLogNotice("done seeking after", ofToString(elapsed));
       setMasterClock();
-      sendSeekMsg(time_nanoseconds);
       ofLogNotice("m_gstClockTime after setMasterClock", ofToString(m_gstClockTime));
 
     }
@@ -565,7 +575,7 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
         m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/play");
-        m.addInt64Arg(m_gstClockTime + 967547000);
+        m.addInt64Arg(m_gstClockTime + 47000);
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
