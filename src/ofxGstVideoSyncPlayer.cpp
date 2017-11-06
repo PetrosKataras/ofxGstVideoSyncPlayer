@@ -399,6 +399,7 @@ void ofxGstVideoSyncPlayer::play()
 void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   gint64 time_nanoseconds = time_ms * pow(10, 6);
   sendSeekMsg(time_nanoseconds);
+  // ofLogNotice("clock time before seek", ofToString(m_gstClockTime))
 
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
@@ -562,7 +563,7 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
         m_oscSender->setup(_client.first, _client.second);
         ofxOscMessage m;
         m.setAddress("/play");
-        m.addInt64Arg(m_gstClockTime + 47000);
+        m.addInt64Arg(m_gstClockTime);
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
