@@ -399,7 +399,7 @@ void ofxGstVideoSyncPlayer::play()
 void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   gint64 time_nanoseconds = time_ms * pow(10, 6);
   sendSeekMsg(time_nanoseconds);
-  // ofLogNotice("clock time before seek", ofToString(m_gstClockTime))
+  ofLogNotice("clock time before seek", ofToString(m_gstClockTime))
 
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
@@ -409,6 +409,7 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
     GstState state;
     gst_element_get_state(m_gstPipeline, &state, NULL, GST_CLOCK_TIME_NONE);
     if (state == GST_STATE_PLAYING) {
+      ofLogNotice("clock time after seek", ofToString(m_gstClockTime))
       setMasterClock();
       sendPlayMsg();
     }
