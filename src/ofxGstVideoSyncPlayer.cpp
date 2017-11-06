@@ -93,7 +93,7 @@ void ofxGstVideoSyncPlayer::initAsMaster( const std::string _clockIp, const int 
     m_oscReceiver = shared_ptr<ofxOscReceiver>(new ofxOscReceiver);
 
     ofAddListener(m_gstPlayer->getGstVideoUtils()->eosEvent, this, &ofxGstVideoSyncPlayer::movieEnded);
-    
+
     m_oscReceiver->setup(m_rcvPort);
 
     m_initialized = true;
@@ -148,14 +148,14 @@ void ofxGstVideoSyncPlayer::loadAsync( std::string _path )
 bool ofxGstVideoSyncPlayer::load( std::string _path )
 {
     bool _loaded = false;
-    
+
     _loaded = m_videoPlayer.load(_path);
 
     if( !_loaded ){
         ofLogError() << " Failed to load video --> " << _path << std::endl;
         return false;
     }
-    
+
     ///> Now that we have loaded we can grab the pipeline..
     m_gstPipeline = m_gstPlayer->getGstVideoUtils()->getPipeline();
 
@@ -170,7 +170,7 @@ bool ofxGstVideoSyncPlayer::load( std::string _path )
 
         ///> Grab the pipeline clock.
         m_gstClock = gst_pipeline_get_clock(GST_PIPELINE(m_gstPipeline));
-    
+
         ///> Set this clock as the master network provider clock.
         ///> The slaves are going to poll this clock through the network
         ///> and adjust their times based on this clock and their local observations.
@@ -193,13 +193,13 @@ bool ofxGstVideoSyncPlayer::load( std::string _path )
 void ofxGstVideoSyncPlayer::update()
 {
     if( m_isMaster && m_loop && m_movieEnded ){
-        
+
 
         ///> Get ready to start over..
         gst_element_set_state(m_gstPipeline, GST_STATE_READY);
         gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
-        ///> Set the master clock i.e This the clock that the slaves will poll 
+        ///> Set the master clock i.e This the clock that the slaves will poll
         ///> in order to keep in-sync.
         setMasterClock();
 
@@ -261,14 +261,14 @@ void ofxGstVideoSyncPlayer::update()
                 string _exitingClient = m.getRemoteIp();
                 int _exitingClientPort = m.getArgAsInt64(0);
 
-                ClientKey _clientExit(_exitingClient, _exitingClientPort); 
+                ClientKey _clientExit(_exitingClient, _exitingClientPort);
                 clients_iter it = m_connectedClients.find(_clientExit);
 
                 if( it != m_connectedClients.end() ){
                     auto temp = it;
                     ofLogVerbose("ofxGstVideoSyncPlayer") << "Disconnecting client with IP : " << _exitingClient << " and port : " << _exitingClientPort << std::endl;
                     m_connectedClients.erase(temp);
-                    
+
                 }
             }
             else if( m.getAddress() == "/client-init-time" && !m_isMaster ){
@@ -285,13 +285,13 @@ void ofxGstVideoSyncPlayer::update()
 
                 m_paused = false;
                 m_movieEnded = false;
-            
+
             }
             else if( m.getAddress() == "/play" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PLAY " << std::endl;
-                
+
                 ///> Set the base time of the slave network clock.
-                setClientClock(m.getArgAsInt64(0));
+                setClientClock((GstClockTime)m.getArgAsInt64(0));
 
                 ///> And start playing..
                 gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
@@ -303,6 +303,7 @@ void ofxGstVideoSyncPlayer::update()
             else if( m.getAddress() == "/pause" && !m_isMaster ){
                 m_pos = m.getArgAsInt64(0);
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> PAUSE " << std::endl;
+                ofLogNotice("client pause seek to position", ofToString(m_pos));
 
                 gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
                 gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
@@ -310,7 +311,7 @@ void ofxGstVideoSyncPlayer::update()
                 ///> This needs more thinking but for now it gives acceptable results.
                 ///> When we pause, we seek to the position of the master when paused was called.
                 ///> If we dont do this there is a delay before the pipeline starts again i.e when hitting play() again after pause()..
-                ///> I m pretty sure this can be done just by adjusting the base_time based on the position but 
+                ///> I m pretty sure this can be done just by adjusting the base_time based on the position but
                 ///> havent figured it out exactly yet..
                 GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
@@ -338,10 +339,24 @@ void ofxGstVideoSyncPlayer::update()
                 m_movieEnded = false;
                 m_paused = false;
             }
+            else if( m.getAddress() == "/seek" && !m_isMaster ){
+
+              m_pos = m.getArgAsInt64(1);
+              ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> SEEK (PAUSE) to" << ofToString(m_pos) << std::endl;
+
+              GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
+
+              if( !gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos )) {
+                      ofLogWarning () << "Seek failed" << std::endl;
+              }
+
+              m_paused = true;
+
+            }
             else if( m.getAddress() == "/eos" && !m_isMaster ){
                 ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> EOS " << std::endl;
 
-                m_movieEnded = true; 
+                m_movieEnded = true;
                 m_paused = true;
             }
         }
@@ -377,6 +392,54 @@ void ofxGstVideoSyncPlayer::play()
     m_movieEnded = false;
     m_paused = false;
 
+}
+
+void ofxGstVideoSyncPlayer::seek(long int time_ms) {
+  gint64 time_nanoseconds = time_ms * pow(10, 6);
+  sendSeekMsg(time_nanoseconds);
+
+  GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
+
+  if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
+      ofLogWarning("failed to seek");
+  } else {
+    GstState state;
+    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    setMasterClock();
+
+    gst_element_set_state(m_gstPipeline, GST_STATE_PLAYING);
+    gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
+    sendPlayMsg();
+  }
+
+
+}
+
+gint64 ofxGstVideoSyncPlayer::getPosition() {
+  gint64 pos;
+  if (gst_element_query_position (m_gstPipeline, GST_FORMAT_TIME, &pos)) {
+    return pos;
+  } else {
+    return 0;
+  }
+}
+
+unsigned long int ofxGstVideoSyncPlayer::getPositionMilliseconds() {
+  return getPosition() / pow(10, 6);
+}
+
+gint64 ofxGstVideoSyncPlayer::getDuration() {
+  gint64 len;
+  if (gst_element_query_duration(m_gstPipeline, GST_FORMAT_TIME, &len)) {
+    return len;
+  } else {
+    return 0;
+  }
+}
+
+unsigned long int ofxGstVideoSyncPlayer::getDurationMilliseconds() {
+  return getDuration() / pow(10, 6);
 }
 
 void ofxGstVideoSyncPlayer::setMasterClock()
@@ -426,7 +489,7 @@ void ofxGstVideoSyncPlayer::draw( ofPoint _pos, float _width, float _height )
     if( !m_videoPlayer.getPixels().isAllocated() || !m_videoPlayer.getTexture().isAllocated() ) return;
 
     if( _width == -1 || _height == -1 ){
-        m_videoPlayer.draw(_pos); 
+        m_videoPlayer.draw(_pos);
     }
     else{
         m_videoPlayer.draw(_pos, _width, _height);
@@ -460,17 +523,17 @@ void ofxGstVideoSyncPlayer::pause()
 
         gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
         gst_element_get_state(m_gstPipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-        
+
         gst_element_query_position(GST_ELEMENT(m_gstPipeline),GST_FORMAT_TIME,&m_pos);
 
         GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
-        
+
         if (!gst_element_seek_simple (m_gstPipeline, GST_FORMAT_TIME, _flags, m_pos)) {
                 ofLogWarning() << "Pausing seek failed" << std::endl;
         }
 
         m_paused = true;
-        
+
         sendPauseMsg();
     }
 }
@@ -503,6 +566,22 @@ void ofxGstVideoSyncPlayer::sendPlayMsg()
         m.setRemoteEndpoint(_client.first, _client.second);
         m_oscSender->sendMessage(m,false);
     }
+}
+
+void ofxGstVideoSyncPlayer::sendSeekMsg(gint64 newPosition)
+{
+  if( !m_isMaster || !m_initialized || !m_oscSender ) return;
+
+  for( auto& _client : m_connectedClients ){
+      ofLogVerbose("ofxGstVideoSyncPlayer") << " Sending SEEK to client : " << _client.first << " at port : " << _client.second << std::endl;
+      m_oscSender->setup(_client.first, _client.second);
+      ofxOscMessage m;
+      m.setAddress("/seek");
+      m.addInt64Arg(m_gstClockTime);
+      m.addInt64Arg(newPosition);
+      m.setRemoteEndpoint(_client.first, _client.second);
+      m_oscSender->sendMessage(m,false);
+  }
 }
 
 void ofxGstVideoSyncPlayer::sendLoopMsg()
