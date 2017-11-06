@@ -403,6 +403,8 @@ void ofxGstVideoSyncPlayer::seek(long int time_ms) {
   sendSeekMsg(time_nanoseconds);
   ofLogNotice("clock time before seek", ofToString(m_gstClockTime));
 
+  gst_element_query_position(GST_ELEMENT(m_gstPipeline),GST_FORMAT_TIME,&m_pos);
+
   GstSeekFlags _flags = (GstSeekFlags) (GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE);
 
   if (!gst_element_seek_simple(m_gstPipeline, GST_FORMAT_TIME, _flags, time_nanoseconds)) {
