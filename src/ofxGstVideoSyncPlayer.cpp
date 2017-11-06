@@ -372,7 +372,8 @@ void ofxGstVideoSyncPlayer::update()
 
 void ofxGstVideoSyncPlayer::play()
 {
-    if( !m_isMaster || !m_paused ) return;
+    // if( !m_isMaster || !m_paused ) return;
+    if( !m_isMaster) return;
 
     setMasterClock();
 
