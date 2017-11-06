@@ -340,7 +340,7 @@ void ofxGstVideoSyncPlayer::update()
             }
             else if( m.getAddress() == "/seek" && !m_isMaster ){
 
-              m_pos = m.getArgAsInt64(0);
+              m_pos = m.getArgAsInt64(1);
               ofLogVerbose("ofxGstVideoSyncPlayer") << " CLIENT ---> SEEK (PAUSE) to" << ofToString(m_pos) << std::endl;
 
               gst_element_set_state(m_gstPipeline, GST_STATE_PAUSED);
